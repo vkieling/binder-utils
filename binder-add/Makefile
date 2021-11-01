@@ -1,13 +1,12 @@
 # -*- Mode: makefile-gmake -*-
 
-.PHONY: all debug release install clean cleaner
-.PHONY: libgbinder-release libgbinder-debug
+.PHONY: all debug release install clean
 
 #
 # Required packages
 #
 
-PKGS = glib-2.0 gio-2.0 gio-unix-2.0 libglibutil
+PKGS = glib-2.0 gio-2.0 gio-unix-2.0 libglibutil libgbinder
 
 #
 # Default target
@@ -34,7 +33,6 @@ SRC = $(EXE).c
 SRC_DIR = .
 BUILD_DIR = build
 GEN_DIR = $(BUILD_DIR)
-LIB_DIR = ../..
 DEBUG_BUILD_DIR = $(BUILD_DIR)/debug
 RELEASE_BUILD_DIR = $(BUILD_DIR)/release
 
@@ -45,7 +43,7 @@ RELEASE_BUILD_DIR = $(BUILD_DIR)/release
 CC ?= $(CROSS_COMPILE)gcc
 LD = $(CC)
 WARNINGS = -Wall
-INCLUDES = -I$(LIB_DIR)/include -I$(GEN_DIR) -I$(SRC_DIR)
+INCLUDES = -I$(GEN_DIR) -I$(SRC_DIR)
 BASE_FLAGS = -fPIC
 CFLAGS = $(BASE_FLAGS) $(DEFINES) $(WARNINGS) $(INCLUDES) -MMD -MP \
   $(shell pkg-config --cflags $(PKGS))
@@ -74,13 +72,6 @@ DEBUG_OBJS = \
 RELEASE_OBJS = \
   $(SRC:%.c=$(RELEASE_BUILD_DIR)/%.o)
 
-DEBUG_SO_FILE := $(shell $(QUIET_MAKE) -C $(LIB_DIR) print_debug_so)
-RELEASE_SO_FILE := $(shell $(QUIET_MAKE) -C $(LIB_DIR) print_release_so)
-DEBUG_LINK_FILE := $(shell $(QUIET_MAKE) -C $(LIB_DIR) print_debug_link)
-RELEASE_LINK_FILE := $(shell $(QUIET_MAKE) -C $(LIB_DIR) print_release_link)
-DEBUG_SO = $(LIB_DIR)/$(DEBUG_SO_FILE)
-RELEASE_SO = $(LIB_DIR)/$(RELEASE_SO_FILE)
-
 #
 # Dependencies
 #
@@ -102,16 +93,13 @@ $(RELEASE_OBJS): | $(RELEASE_BUILD_DIR)
 DEBUG_EXE = $(DEBUG_BUILD_DIR)/$(EXE)
 RELEASE_EXE = $(RELEASE_BUILD_DIR)/$(EXE)
 
-debug: libgbinder-debug $(DEBUG_EXE)
+debug: $(DEBUG_EXE)
 
-release: libgbinder-release $(RELEASE_EXE)
+release: $(RELEASE_EXE)
 
 clean:
 	rm -f *~
 	rm -fr $(BUILD_DIR)
-
-cleaner: clean
-	@make -C $(LIB_DIR) clean
 
 $(DEBUG_BUILD_DIR):
 	mkdir -p $@
@@ -140,20 +128,14 @@ $(DEBUG_BUILD_DIR)/%.o : $(SRC_DIR)/%.c
 $(RELEASE_BUILD_DIR)/%.o : $(SRC_DIR)/%.c
 	$(CC) -c $(RELEASE_CFLAGS) -MT"$@" -MF"$(@:%.o=%.d)" $< -o $@
 
-$(DEBUG_EXE): $(DEBUG_SO) $(DEBUG_BUILD_DIR) $(DEBUG_OBJS)
-	$(LD) $(DEBUG_OBJS) $(DEBUG_LDFLAGS) $< -o $@
+$(DEBUG_EXE): $(DEBUG_BUILD_DIR) $(DEBUG_OBJS)
+	$(LD) $(DEBUG_OBJS) $(DEBUG_LDFLAGS) -o $@
 
-$(RELEASE_EXE): $(RELEASE_SO) $(RELEASE_BUILD_DIR) $(RELEASE_OBJS)
-	$(LD) $(RELEASE_OBJS) $(RELEASE_LDFLAGS) $< -o $@
+$(RELEASE_EXE): $(RELEASE_BUILD_DIR) $(RELEASE_OBJS)
+	$(LD) $(RELEASE_OBJS) $(RELEASE_LDFLAGS) -o $@
 ifeq ($(KEEP_SYMBOLS),0)
 	strip $@
 endif
-
-libgbinder-debug:
-	@$(MAKE) $(SUBMAKE_OPTS) -C $(LIB_DIR) $(DEBUG_SO_FILE) $(DEBUG_LINK_FILE)
-
-libgbinder-release:
-	@$(MAKE) $(SUBMAKE_OPTS) -C $(LIB_DIR) $(RELEASE_SO_FILE) $(RELEASE_LINK_FILE)
 
 #
 # Install
