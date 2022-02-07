@@ -40,6 +40,7 @@ RELEASE_BUILD_DIR = $(BUILD_DIR)/release
 # Tools and flags
 #
 
+STRIP ?= strip
 CC ?= $(CROSS_COMPILE)gcc
 LD = $(CC)
 WARNINGS = -Wall
@@ -134,7 +135,7 @@ $(DEBUG_EXE): $(DEBUG_BUILD_DIR) $(DEBUG_OBJS)
 $(RELEASE_EXE): $(RELEASE_BUILD_DIR) $(RELEASE_OBJS)
 	$(LD) $(RELEASE_OBJS) $(RELEASE_LDFLAGS) -o $@
 ifeq ($(KEEP_SYMBOLS),0)
-	strip $@
+	$(STRIP) $@
 endif
 
 #
